@@ -5,6 +5,7 @@
  * because the admin app is network-isolated (see lince-phase1 adminAuth.ts).
  */
 import "server-only";
+import { cache } from "react";
 
 const BASE = process.env.LINCE_API_URL ?? "http://localhost:3000";
 const TOKEN = process.env.ADMIN_SERVICE_TOKEN ?? "";
@@ -31,21 +32,31 @@ export interface AdminOrg {
   created_at: string;
 }
 
-export async function listOrgs(): Promise<AdminOrg[]> {
+// cache() dedupes the call within a single request (layout + page both read it).
+export const listOrgs = cache(async (): Promise<AdminOrg[]> => {
   const res = await adminFetch("/admin/orgs");
   if (!res.ok) return [];
   const body = (await res.json().catch(() => ({}))) as { orgs?: AdminOrg[] };
   return body.orgs ?? [];
+});
+
+export interface VerdictInput {
+  decision: "approved" | "rejected";
+  remark?: string;
+  aveniaReference?: string;
+  adminClerkUserId: string;
+  adminEmail: string;
+  adminName: string;
 }
 
-/** Record Avenia's verdict (approve). Modelo A: this records Avenia's decision, not a Lince one. */
-export async function approveOrg(
+/** Record Avenia's verdict (approve/reject). Modelo A: records Avenia's decision, not a Lince one. */
+export async function recordVerdict(
   id: string,
-  admin: { adminClerkUserId: string; adminEmail: string; adminName: string; aveniaReference?: string },
+  input: VerdictInput,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const res = await adminFetch(`/admin/orgs/${id}/approve`, {
+  const res = await adminFetch(`/admin/orgs/${id}/verdict`, {
     method: "POST",
-    body: JSON.stringify(admin),
+    body: JSON.stringify(input),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };

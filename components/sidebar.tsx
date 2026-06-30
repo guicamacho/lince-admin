@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
-  ClipboardCheck,
   ArrowLeftRight,
   Landmark,
   ShieldCheck,
@@ -13,12 +12,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// PRD-04 §2 modules. Onboarding & KYB is the only wired one in the v1 skeleton
-// (the Avenia-verdict relay); the rest are inert placeholders.
+// PRD-04 §2 modules. The Avenia-verdict relay is handled by the persistent
+// pending-approvals banner (not a dedicated menu); approvals land in Empresas.
 const NAV = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { href: "/orgs", label: "Empresas", icon: Building2 },
-  { href: "/onboarding", label: "Onboarding & KYB", icon: ClipboardCheck },
   { href: "/transactions", label: "Transações", icon: ArrowLeftRight },
   { href: "/treasury", label: "Tesouraria", icon: Landmark },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck },
