@@ -19,7 +19,21 @@ export interface OrgStatusInfo {
 
 const INACTIVE_STATES = new Set(["rejected", "declined", "blocked", "suspended"]);
 
-export function orgStatus(o: { state: string; admission_state: string | null }): OrgStatusInfo {
+export function orgStatus(o: {
+  state: string;
+  admission_state: string | null;
+  access_status?: string;
+}): OrgStatusInfo {
+  // Access control (mig 0002) overrides lifecycle state: a blocked/suspended org is Inativa
+  // even if its lifecycle state is 'active'.
+  if (o.access_status && o.access_status !== "active") {
+    return {
+      key: "inactive",
+      label: "Inativa",
+      reason: o.access_status === "blocked" ? "Bloqueada" : "Suspensa",
+      awaitingDecision: false,
+    };
+  }
   if (o.state === "active") {
     return { key: "active", label: "Ativa", reason: "Conta ativa", awaitingDecision: false };
   }

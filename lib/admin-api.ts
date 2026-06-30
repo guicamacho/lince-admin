@@ -28,6 +28,7 @@ export interface AdminOrg {
   razao_social: string;
   state: string;
   admission_state: string | null;
+  access_status: string;
   kyb_forwarded_at: string | null;
   created_at: string;
 }
