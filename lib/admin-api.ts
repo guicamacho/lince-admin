@@ -65,3 +65,27 @@ export async function recordVerdict(
   }
   return { ok: true };
 }
+
+export interface AccessInput {
+  action: "suspend" | "block" | "reinstate";
+  reason: string;
+  adminClerkUserId: string;
+  adminEmail: string;
+  adminName: string;
+}
+
+/** Suspend, block or reinstate an org's access (orgs.access_status). Reason is audit-logged. */
+export async function setOrgAccess(
+  id: string,
+  input: AccessInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/orgs/${id}/access`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}

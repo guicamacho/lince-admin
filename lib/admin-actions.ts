@@ -1,7 +1,7 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
-import { recordVerdict } from "@/lib/admin-api";
+import { recordVerdict, setOrgAccess } from "@/lib/admin-api";
 
 /**
  * Record Avenia's verdict for an org. Modelo A: records Avenia's decision, not a Lince
@@ -24,6 +24,32 @@ export async function recordVerdictAction(
     decision: input.decision,
     remark: input.remark?.trim() || undefined,
     aveniaReference: input.aveniaReference?.trim() || undefined,
+    adminClerkUserId: user.id,
+    adminEmail: email,
+    adminName: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Admin",
+  });
+  if (!res.ok) return { error: res.error };
+  return { ok: true };
+}
+
+/**
+ * Suspend, block or reinstate an org's access (orgs.access_status). Every action requires
+ * a reason — the backend audit-logs the change with it. Staff identity comes from the
+ * admin Clerk instance.
+ */
+export async function setOrgAccessAction(
+  orgId: string,
+  input: { action: "suspend" | "block" | "reinstate"; reason: string },
+): Promise<{ ok: true } | { error: string }> {
+  const user = await currentUser();
+  if (!user) return { error: "Sessão expirada. Entre novamente." };
+  const email = user.primaryEmailAddress?.emailAddress ?? "";
+  if (!email) return { error: "Conta de admin sem e-mail. Verifique o cadastro." };
+  if (!input.reason.trim()) return { error: "Informe o motivo." };
+
+  const res = await setOrgAccess(orgId, {
+    action: input.action,
+    reason: input.reason.trim(),
     adminClerkUserId: user.id,
     adminEmail: email,
     adminName: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Admin",

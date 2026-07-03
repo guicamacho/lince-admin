@@ -3,8 +3,8 @@
  * `orgs.state` (+ admission_state). Three buckets the user filters on:
  *  - active   : the account is live.
  *  - pending  : in KYB or awaiting Avenia's admission verdict (information pending).
- *  - inactive : Avenia rejected it (now); later also "us blocking" / "self-deactivated"
- *               once orgs.access_status (migration 0002) lands.
+ *  - inactive : Avenia rejected it, or we suspended/blocked its access — orgs.access_status
+ *               (migration 0002) overrides the lifecycle state when not 'active'.
  * `awaitingDecision` flags the subset the admin actually relays a verdict for: the org
  * has been forwarded to Avenia and is waiting on the decision (vendor_pending).
  */

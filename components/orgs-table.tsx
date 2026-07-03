@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AccessDialog } from "@/components/access-dialog";
 import { orgStatus, STATUS_BADGE, type OrgStatusKey } from "@/lib/org-status";
 import type { AdminOrg } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ export function OrgsTable({ orgs }: { orgs: AdminOrg[] }) {
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Detalhe</th>
                 <th className="px-4 py-3 font-medium">Criada</th>
+                <th className="px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-500">
@@ -78,6 +80,9 @@ export function OrgsTable({ orgs }: { orgs: AdminOrg[] }) {
                   <td className="px-4 py-3 text-warm-400">{s.reason}</td>
                   <td className="px-4 py-3 text-warm-400">
                     {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <AccessDialog org={o} />
                   </td>
                 </tr>
               ))}
