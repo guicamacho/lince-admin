@@ -123,40 +123,48 @@ export function OrgsTable({ orgs }: { orgs: AdminOrg[] }) {
     // Audit FIRST, download after (PRD-04 §3): the full-CNPJ export is only permitted
     // because it is audited, so a failed audit write must block the file, not trail it.
     startExport(async () => {
-      const res = await exportAuditAction({
-        entity: "orgs",
-        filter: {
-          status: filter,
-          search: search.trim() || undefined,
-          from: from || undefined,
-          to: to || undefined,
-        },
-        row_count: filtered.length,
-      });
-      if ("error" in res) {
-        setExportError("Não foi possível registrar a exportação na auditoria. Tente novamente.");
-        return;
+      // A thrown action inside a transition would bubble to the error boundary and blank the
+      // whole page; keep every failure inline so the grid survives.
+      try {
+        const res = await exportAuditAction({
+          entity: "orgs",
+          filter: {
+            status: filter,
+            search: search.trim() || undefined,
+            from: from || undefined,
+            to: to || undefined,
+          },
+          row_count: filtered.length,
+        });
+        if ("error" in res) {
+          setExportError(`Não foi possível registrar a exportação na auditoria: ${res.error}`);
+          return;
+        }
+        const header = ["CNPJ", "Razão social", "Status", "Admissão", "Criada"];
+        const lines = [
+          header,
+          ...filtered.map(({ o, s }) => [
+            o.cnpj,
+            o.razao_social,
+            s.label,
+            o.admission_state ?? "",
+            formatDate(o.created_at),
+          ]),
+        ];
+        const csv = lines.map((r) => r.map(csvCell).join(",")).join("\r\n");
+        // BOM so Excel (pt-BR) reads UTF-8 accents correctly.
+        const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `empresas-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        setExportError(
+          `Falha ao exportar: ${e instanceof Error ? e.message : "erro desconhecido"}. Tente novamente.`,
+        );
       }
-      const header = ["CNPJ", "Razão social", "Status", "Admissão", "Criada"];
-      const lines = [
-        header,
-        ...filtered.map(({ o, s }) => [
-          o.cnpj,
-          o.razao_social,
-          s.label,
-          o.admission_state ?? "",
-          formatDate(o.created_at),
-        ]),
-      ];
-      const csv = lines.map((r) => r.map(csvCell).join(",")).join("\r\n");
-      // BOM so Excel (pt-BR) reads UTF-8 accents correctly.
-      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `empresas-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
     });
   }
 

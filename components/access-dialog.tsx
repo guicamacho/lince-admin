@@ -25,6 +25,7 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const status = orgStatus(org);
+  const actions = actionsFor(org.access_status);
 
   const enqueueing = action === "block" && secondApproval;
 
@@ -96,9 +97,11 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
                 disabled={pending}
                 className={`mt-1 h-8 ${inputClass}`}
               >
-                <option value="suspend">Suspender</option>
-                <option value="block">Bloquear</option>
-                <option value="reinstate">Reativar</option>
+                {actions.map((a) => (
+                  <option key={a} value={a}>
+                    {ACTION_LABEL[a]}
+                  </option>
+                ))}
               </select>
             </div>
             {action === "block" && (
@@ -158,7 +161,23 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
   );
 }
 
-/** Suspend is the natural action for an active org; otherwise offer to reinstate. */
+const ACTION_LABEL: Record<AccessAction, string> = {
+  suspend: "Suspender",
+  block: "Bloquear",
+  reinstate: "Reativar",
+};
+
+/**
+ * Valid actions for the org's current access_status — never offer a no-op to the current
+ * state (e.g. Reativar when already active). Any-to-any is legal server-side; this is the UX gate.
+ */
+function actionsFor(status: string | undefined): AccessAction[] {
+  if (status === "suspended") return ["reinstate", "block"];
+  if (status === "blocked") return ["reinstate", "suspend"];
+  return ["suspend", "block"]; // active (or unknown): can restrict, not reactivate
+}
+
+/** First valid action for the current status. */
 function defaultAction(org: AdminOrg): AccessAction {
-  return org.access_status === "active" ? "suspend" : "reinstate";
+  return actionsFor(org.access_status)[0]!;
 }
