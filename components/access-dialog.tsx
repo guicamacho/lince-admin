@@ -6,6 +6,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { setOrgAccessAction, enqueueBlockAction } from "@/lib/admin-actions";
 import { orgStatus } from "@/lib/org-status";
+import { MAKER_CHECKER_ENABLED } from "@/lib/flags";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { AdminOrg } from "@/lib/admin-api";
 
@@ -104,7 +105,7 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
                 ))}
               </select>
             </div>
-            {action === "block" && (
+            {MAKER_CHECKER_ENABLED && action === "block" && (
               <label
                 htmlFor={`second-approval-${org.id}`}
                 className="flex cursor-pointer items-start gap-2 rounded-lg border border-ink-500 bg-ink-800 p-2.5 text-xs text-warm-300"

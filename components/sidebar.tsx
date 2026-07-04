@@ -13,9 +13,11 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MAKER_CHECKER_ENABLED } from "@/lib/flags";
 
 // PRD-04 §2 modules. The Avenia-verdict relay is handled by the persistent pending-approvals
-// banner; the maker-checker queue (2ª aprovação) is the dedicated "Aprovações" item.
+// banner; the maker-checker queue (2ª aprovação) is the dedicated "Aprovações" item, hidden
+// until a second ops user exists (see flags.ts).
 const NAV = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { href: "/orgs", label: "Empresas", icon: Building2 },
@@ -25,7 +27,7 @@ const NAV = [
   { href: "/treasury", label: "Tesouraria", icon: Landmark },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck },
   { href: "/settings", label: "Configurações", icon: Settings },
-] as const;
+].filter((item) => MAKER_CHECKER_ENABLED || item.href !== "/approvals");
 
 export function Sidebar({ approvalsCount = 0 }: { approvalsCount?: number }) {
   const pathname = usePathname();

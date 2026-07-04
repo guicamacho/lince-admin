@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { PendingBanner } from "@/components/pending-banner";
 import { listOrgs, listApprovals } from "@/lib/admin-api";
 import { orgStatus } from "@/lib/org-status";
+import { MAKER_CHECKER_ENABLED } from "@/lib/flags";
 
 // Staff auth gate. Network isolation (Cloudflare Access / Fly private networking)
 // sits in front of this in deployment — PRD-04 §0.
@@ -14,7 +15,10 @@ export default async function PortalLayout({ children }: { children: React.React
 
   // Persistent pending-approvals banner: companies awaiting Avenia's verdict.
   // Open maker-checker requests drive the "Aprovações" sidebar badge.
-  const [orgs, approvals] = await Promise.all([listOrgs(), listApprovals()]);
+  const [orgs, approvals] = await Promise.all([
+    listOrgs(),
+    MAKER_CHECKER_ENABLED ? listApprovals() : Promise.resolve([]),
+  ]);
   const awaiting = orgs.filter((o) => orgStatus(o).awaitingDecision);
 
   return (
