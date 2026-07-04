@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { TopBar } from "@/components/top-bar";
 import { Sidebar } from "@/components/sidebar";
 import { PendingBanner } from "@/components/pending-banner";
-import { listOrgs } from "@/lib/admin-api";
+import { listOrgs, listApprovals } from "@/lib/admin-api";
 import { orgStatus } from "@/lib/org-status";
 
 // Staff auth gate. Network isolation (Cloudflare Access / Fly private networking)
@@ -13,14 +13,15 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!userId) redirect("/sign-in");
 
   // Persistent pending-approvals banner: companies awaiting Avenia's verdict.
-  const orgs = await listOrgs();
+  // Open maker-checker requests drive the "Aprovações" sidebar badge.
+  const [orgs, approvals] = await Promise.all([listOrgs(), listApprovals()]);
   const awaiting = orgs.filter((o) => orgStatus(o).awaitingDecision);
 
   return (
     <div className="flex min-h-screen flex-col">
       <TopBar />
       <div className="flex flex-1">
-        <Sidebar />
+        <Sidebar approvalsCount={approvals.length} />
         <div className="flex flex-1 flex-col">
           <PendingBanner orgs={awaiting} />
           <main className="flex-1 p-8">{children}</main>

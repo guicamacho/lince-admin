@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import { setOrgAccessAction } from "@/lib/admin-actions";
+import { setOrgAccessAction, enqueueBlockAction } from "@/lib/admin-actions";
 import { orgStatus } from "@/lib/org-status";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { AdminOrg } from "@/lib/admin-api";
@@ -21,15 +21,19 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<AccessAction>(defaultAction(org));
   const [reason, setReason] = useState("");
+  const [secondApproval, setSecondApproval] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const status = orgStatus(org);
+
+  const enqueueing = action === "block" && secondApproval;
 
   function onOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
       setAction(defaultAction(org));
       setReason("");
+      setSecondApproval(false);
       setError(null);
     }
   }
@@ -41,7 +45,10 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
       return;
     }
     start(async () => {
-      const res = await setOrgAccessAction(org.id, { action, reason: reason.trim() });
+      // Coexist model (ruling #1): a direct block by default, OR enqueue to maker-checker.
+      const res = enqueueing
+        ? await enqueueBlockAction(org.id, reason.trim())
+        : await setOrgAccessAction(org.id, { action, reason: reason.trim() });
       if ("error" in res) {
         setError(res.error);
         return;
@@ -94,6 +101,25 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
                 <option value="reinstate">Reativar</option>
               </select>
             </div>
+            {action === "block" && (
+              <label
+                htmlFor={`second-approval-${org.id}`}
+                className="flex cursor-pointer items-start gap-2 rounded-lg border border-ink-500 bg-ink-800 p-2.5 text-xs text-warm-300"
+              >
+                <input
+                  id={`second-approval-${org.id}`}
+                  type="checkbox"
+                  checked={secondApproval}
+                  onChange={(e) => setSecondApproval(e.target.checked)}
+                  disabled={pending}
+                  className="mt-0.5 size-4 shrink-0 cursor-pointer accent-gold-500"
+                />
+                <span>
+                  Bloquear com 2ª aprovação — envia para a fila de aprovações; a empresa só é
+                  bloqueada após outro operador aprovar.
+                </span>
+              </label>
+            )}
             <div>
               <label htmlFor={`motivo-${org.id}`} className="block text-xs text-warm-300">
                 Motivo (obrigatório — registrado no histórico de auditoria)
@@ -122,7 +148,7 @@ export function AccessDialog({ org }: { org: AdminOrg }) {
                 onClick={submit}
                 disabled={pending}
               >
-                {pending ? "…" : "Confirmar"}
+                {pending ? "…" : enqueueing ? "Enviar para aprovação" : "Confirmar"}
               </Button>
             </div>
           </div>
