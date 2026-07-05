@@ -22,20 +22,28 @@ const NAV = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
   { href: "/orgs", label: "Empresas", icon: Building2 },
   { href: "/admissions", label: "Admissões", icon: Clock },
-  { href: "/approvals", label: "Aprovações", icon: CheckCheck, badge: true },
+  { href: "/approvals", label: "Aprovações", icon: CheckCheck, badge: "approvals" as const },
   { href: "/transactions", label: "Transações", icon: ArrowLeftRight },
   { href: "/treasury", label: "Tesouraria", icon: Landmark },
-  { href: "/compliance", label: "Compliance", icon: ShieldCheck },
+  { href: "/compliance", label: "Compliance", icon: ShieldCheck, badge: "cases" as const },
   { href: "/settings", label: "Configurações", icon: Settings },
 ].filter((item) => MAKER_CHECKER_ENABLED || item.href !== "/approvals");
 
-export function Sidebar({ approvalsCount = 0 }: { approvalsCount?: number }) {
+export function Sidebar({
+  approvalsCount = 0,
+  openCasesCount = 0,
+}: {
+  approvalsCount?: number;
+  openCasesCount?: number;
+}) {
   const pathname = usePathname();
   return (
     <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-ink-500 bg-ink-800 p-3">
       {NAV.map(({ href, label, icon: Icon, ...rest }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
-        const showBadge = "badge" in rest && rest.badge && approvalsCount > 0;
+        const badge = "badge" in rest ? rest.badge : undefined;
+        const count = badge === "cases" ? openCasesCount : badge === "approvals" ? approvalsCount : 0;
+        const badgeLabel = badge === "cases" ? "casos abertos" : "pendentes";
         return (
           <Link
             key={href}
@@ -48,12 +56,12 @@ export function Sidebar({ approvalsCount = 0 }: { approvalsCount?: number }) {
           >
             <Icon className="size-4 shrink-0" />
             <span className="flex-1">{label}</span>
-            {showBadge && (
+            {count > 0 && (
               <span
-                aria-label={`${approvalsCount} pendentes`}
+                aria-label={`${count} ${badgeLabel}`}
                 className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold-500 px-1.5 text-xs font-semibold text-ink-900"
               >
-                {approvalsCount}
+                {count}
               </span>
             )}
           </Link>

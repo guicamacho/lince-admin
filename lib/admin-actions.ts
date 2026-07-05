@@ -7,6 +7,10 @@ import {
   postExportAudit,
   enqueueApproval,
   decideApproval,
+  createCase,
+  postCaseMessage,
+  updateCaseStatus,
+  assignCase,
 } from "@/lib/admin-api";
 
 /**
@@ -153,5 +157,115 @@ export async function decideApprovalAction(
     ...who,
   });
   if (!res.ok) return { error: mapApprovalError(res.error) };
+  return { ok: true };
+}
+
+/** Neutral pt-BR for the compliance-case error codes (frozen Wave 1 contract). */
+function mapCaseError(code: string): string {
+  switch (code) {
+    case "invalid_case_type":
+      return "Tipo de caso inválido.";
+    case "invalid_priority":
+      return "Prioridade inválida.";
+    case "invalid_status":
+      return "Status inválido.";
+    case "empty_body":
+      return "Escreva uma mensagem.";
+    case "resolution_required_on_close":
+      return "Informe a resolução para fechar o caso.";
+    case "message_not_customer_visible_for_type":
+      return "Este tipo de caso não permite mensagens visíveis ao cliente.";
+    case "case_has_no_org":
+      return "Vincule uma empresa antes de enviar ao cliente.";
+    case "case_not_found":
+      return "Caso não encontrado.";
+    case "invalid_admin":
+      return "Responsável inválido.";
+    case "missing_admin_identity":
+      return "Sessão expirada. Entre novamente.";
+    default:
+      return "Não foi possível concluir a ação.";
+  }
+}
+
+/**
+ * Open a compliance case (staff-initiated; reply-only model). Type is operational only — the
+ * UI never offers an AML type and the backend rejects one (invalid_case_type). Staff identity
+ * comes from the admin Clerk instance.
+ */
+export async function createCaseAction(input: {
+  type: string;
+  org_id?: string;
+  priority?: string;
+  summary?: string;
+}): Promise<{ ok: true; id: string } | { error: string }> {
+  const id = await staffIdentity();
+  if ("error" in id) return id;
+  if (!input.type.trim()) return { error: "Selecione o tipo do caso." };
+  const res = await createCase({
+    type: input.type,
+    org_id: input.org_id || undefined,
+    priority: input.priority || undefined,
+    summary: input.summary?.trim() || undefined,
+    ...id,
+  });
+  if (!res.ok) return { error: mapCaseError(res.error) };
+  return { ok: true, id: res.id };
+}
+
+/**
+ * Post a staff message on a case. customer_visible=false is an internal note (never leaves the
+ * boundary); true is refused backend-side unless the case type is customer-facing. Staff
+ * identity comes from the admin Clerk instance.
+ */
+export async function postCaseMessageAction(
+  caseId: string,
+  input: { body: string; customer_visible?: boolean },
+): Promise<{ ok: true } | { error: string }> {
+  const id = await staffIdentity();
+  if ("error" in id) return id;
+  if (!input.body.trim()) return { error: "Escreva uma mensagem." };
+  const res = await postCaseMessage(caseId, {
+    body: input.body.trim(),
+    customer_visible: input.customer_visible === true,
+    ...id,
+  });
+  if (!res.ok) return { error: mapCaseError(res.error) };
+  return { ok: true };
+}
+
+/**
+ * Change a case's status. Closing requires a resolution (backend enforces; re-checked here so
+ * the user gets an inline error without a round-trip). No admin identity needed by the route.
+ */
+export async function updateCaseStatusAction(
+  caseId: string,
+  input: { status: string; resolution?: string },
+): Promise<{ ok: true } | { error: string }> {
+  const user = await currentUser();
+  if (!user) return { error: "Sessão expirada. Entre novamente." };
+  if (input.status === "closed" && !input.resolution?.trim()) {
+    return { error: "Informe a resolução para fechar o caso." };
+  }
+  const res = await updateCaseStatus(caseId, {
+    status: input.status,
+    resolution: input.resolution?.trim() || undefined,
+  });
+  if (!res.ok) return { error: mapCaseError(res.error) };
+  return { ok: true };
+}
+
+/**
+ * Assign a case to an admin. ponytail: no admin-roster endpoint exists, so no UI feeds this
+ * today — kept for the frozen contract; wire a picker once a roster read ships.
+ */
+export async function assignCaseAction(
+  caseId: string,
+  assignedAdminId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const user = await currentUser();
+  if (!user) return { error: "Sessão expirada. Entre novamente." };
+  const res = await assignCase(caseId, assignedAdminId);
+  if (!res.ok) return { error: mapCaseError(res.error) };
   return { ok: true };
 }

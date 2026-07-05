@@ -251,3 +251,136 @@ export async function decideApproval(
   }
   return { ok: true };
 }
+
+// --- Compliance cases (Wave 1 backend §4) — service-token gated. Reads are cache()'d so the
+//     layout (open-case badge) and the page share one fetch; the customer-visibility wall is
+//     enforced backend-side (messages.service). ---
+export interface AdminCase {
+  id: string;
+  org_id: string | null;
+  type: string;
+  status: string;
+  priority: string;
+  summary: string | null;
+  assigned_admin_id: string | null;
+  opened_by: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  org_name: string | null;
+  last_message_at: string | null;
+}
+
+export const listCases = cache(async (): Promise<AdminCase[]> => {
+  const res = await adminFetch("/admin/cases");
+  if (!res.ok) return [];
+  const body = (await res.json().catch(() => ({}))) as { cases?: AdminCase[] };
+  return body.cases ?? [];
+});
+
+export interface AdminCaseMessage {
+  id: string;
+  case_id: string;
+  author_type: "admin" | "customer" | "system";
+  author_id: string | null;
+  body: string;
+  customer_visible: boolean;
+  created_at: string;
+}
+
+export interface AdminCaseDetail {
+  case: {
+    id: string;
+    org_id: string | null;
+    type: string;
+    status: string;
+    priority: string;
+    summary: string | null;
+    resolution: string | null;
+    assigned_admin_id: string | null;
+    opened_by: string | null;
+    opened_at: string;
+    closed_at: string | null;
+  };
+  org: { id: string; razao_social: string; cnpj: string; state: string } | null;
+  messages: AdminCaseMessage[];
+}
+
+export const getCaseDetail = cache(async (id: string): Promise<AdminCaseDetail | null> => {
+  const res = await adminFetch(`/admin/cases/${id}`);
+  if (!res.ok) return null;
+  return (await res.json().catch(() => null)) as AdminCaseDetail | null;
+});
+
+export interface CreateCaseInput {
+  org_id?: string;
+  type: string;
+  priority?: string;
+  summary?: string;
+  adminClerkUserId: string;
+  adminEmail: string;
+  adminName: string;
+}
+
+export async function createCase(
+  input: CreateCaseInput,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const res = await adminFetch("/admin/cases", { method: "POST", body: JSON.stringify(input) });
+  const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+  if (!res.ok || !body.id) return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  return { ok: true, id: body.id };
+}
+
+export interface PostCaseMessageInput {
+  body: string;
+  customer_visible?: boolean;
+  adminClerkUserId: string;
+  adminEmail: string;
+  adminName: string;
+}
+
+export async function postCaseMessage(
+  id: string,
+  input: PostCaseMessageInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/cases/${id}/messages`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+export async function updateCaseStatus(
+  id: string,
+  input: { status: string; resolution?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/cases/${id}/status`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
+/** Assign a case to an admin_users.id. ponytail: no roster endpoint exists yet, so no UI
+ *  feeds this today — the binding is ready for when a `/admin/admins` roster ships. */
+export async function assignCase(
+  id: string,
+  assignedAdminId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/cases/${id}/assign`, {
+    method: "POST",
+    body: JSON.stringify({ assigned_admin_id: assignedAdminId }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
