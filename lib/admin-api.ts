@@ -36,8 +36,8 @@ export interface AdminOrg {
 // cache() dedupes the call within a single request (layout + page both read it).
 export const listOrgs = cache(async (): Promise<AdminOrg[]> => {
   const res = await adminFetch("/admin/orgs");
-  if (!res.ok) return [];
-  const body = (await res.json().catch(() => ({}))) as { orgs?: AdminOrg[] };
+  if (!res.ok) throw new Error(`backend /admin/orgs failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { orgs?: AdminOrg[] };
   return body.orgs ?? [];
 });
 
@@ -139,8 +139,9 @@ export interface OrgDetail {
 
 export const getOrgDetail = cache(async (id: string): Promise<OrgDetail | null> => {
   const res = await adminFetch(`/admin/orgs/${id}`);
-  if (!res.ok) return null;
-  return (await res.json().catch(() => null)) as OrgDetail | null;
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`backend /admin/orgs/:id failed: HTTP ${res.status}`);
+  return (await res.json()) as OrgDetail;
 });
 
 // --- Admission aging + latency (A3) — GET /admin/admissions/aging. ---
@@ -163,8 +164,8 @@ export interface AdmissionAging {
 
 export const getAdmissionAging = cache(async (): Promise<AdmissionAging | null> => {
   const res = await adminFetch("/admin/admissions/aging");
-  if (!res.ok) return null;
-  return (await res.json().catch(() => null)) as AdmissionAging | null;
+  if (!res.ok) throw new Error(`backend /admin/admissions/aging failed: HTTP ${res.status}`);
+  return (await res.json()) as AdmissionAging;
 });
 
 // --- Export-audit sink (A1) — POST /admin/audit/export. The CSV is built client-side; this
@@ -202,8 +203,8 @@ export interface ApprovalRow {
 
 export const listApprovals = cache(async (): Promise<ApprovalRow[]> => {
   const res = await adminFetch("/admin/approvals");
-  if (!res.ok) return [];
-  const body = (await res.json().catch(() => ({}))) as { approvals?: ApprovalRow[] };
+  if (!res.ok) throw new Error(`backend /admin/approvals failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { approvals?: ApprovalRow[] };
   return body.approvals ?? [];
 });
 
@@ -272,8 +273,8 @@ export interface AdminCase {
 
 export const listCases = cache(async (): Promise<AdminCase[]> => {
   const res = await adminFetch("/admin/cases");
-  if (!res.ok) return [];
-  const body = (await res.json().catch(() => ({}))) as { cases?: AdminCase[] };
+  if (!res.ok) throw new Error(`backend /admin/cases failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { cases?: AdminCase[] };
   return body.cases ?? [];
 });
 
@@ -307,8 +308,9 @@ export interface AdminCaseDetail {
 
 export const getCaseDetail = cache(async (id: string): Promise<AdminCaseDetail | null> => {
   const res = await adminFetch(`/admin/cases/${id}`);
-  if (!res.ok) return null;
-  return (await res.json().catch(() => null)) as AdminCaseDetail | null;
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`backend /admin/cases/:id failed: HTTP ${res.status}`);
+  return (await res.json()) as AdminCaseDetail;
 });
 
 export interface CreateCaseInput {
