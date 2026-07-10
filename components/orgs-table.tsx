@@ -32,7 +32,12 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 ];
 
 function csvCell(v: string): string {
-  return `"${(v ?? "").replace(/"/g, '""')}"`;
+  let s = v ?? "";
+  // CSV formula-injection guard: a customer-controlled cell (razão social) starting with a
+  // formula trigger would execute when staff open the file in Excel/Sheets. Prefix with a
+  // single quote to neutralise it (then normal quote-escaping for commas/quotes/newlines).
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
 }
 
 // Sort proxy for "tempo em análise" without a render-time clock: longer elapsed ⇔ earlier
