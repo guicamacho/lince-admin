@@ -90,9 +90,10 @@ export async function raiseRfiAction(
   const res = await raiseRfi(orgId, { message: message.trim(), ...id });
   if (!res.ok) {
     return {
-      error: res.error.startsWith("illegal")
-        ? "A empresa não está em um estado que permite solicitar informações."
-        : "Não foi possível registrar a solicitação.",
+      error:
+        res.error === "org_state_not_eligible_for_rfi"
+          ? "A empresa não está em um estado que permite solicitar informações."
+          : "Não foi possível registrar a solicitação.",
     };
   }
   return { ok: true };
