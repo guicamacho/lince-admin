@@ -66,6 +66,26 @@ export async function recordVerdict(
   return { ok: true };
 }
 
+export interface RaiseRfiInput {
+  message: string;
+  adminClerkUserId: string;
+  adminEmail: string;
+  adminName: string;
+}
+
+/** Relay an Avenia EDD info request to the customer (org -> rfi_required + customer-visible msg). */
+export async function raiseRfi(
+  id: string,
+  input: RaiseRfiInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/orgs/${id}/rfi`, { method: "POST", body: JSON.stringify(input) });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
 export interface AccessInput {
   action: "suspend" | "block" | "reinstate";
   reason: string;

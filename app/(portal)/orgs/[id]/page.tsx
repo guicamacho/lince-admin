@@ -4,7 +4,11 @@ import { ArrowLeft } from "lucide-react";
 import { getOrgDetail } from "@/lib/admin-api";
 import { orgStatus, STATUS_BADGE } from "@/lib/org-status";
 import { CnpjMask } from "@/components/cnpj-mask";
+import { RfiDialog } from "@/components/rfi-dialog";
 import { StatusHistory } from "@/components/status-history";
+
+// States from which raising an RFI is a legal transition (backend org.state machine).
+const RFI_ELIGIBLE_STATES = new Set(["vendor_pending", "kyb_in_progress", "rfi_required"]);
 import { elapsedLabel, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -34,14 +38,19 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ id: 
             <CnpjMask cnpj={org.cnpj} />
           </div>
         </div>
-        <span
-          className={cn(
-            "inline-flex rounded-full border px-3 py-1 text-sm font-medium",
-            STATUS_BADGE[status.key],
+        <div className="flex flex-wrap items-center gap-3">
+          {RFI_ELIGIBLE_STATES.has(org.state) && (
+            <RfiDialog orgId={org.id} razaoSocial={org.razao_social} />
           )}
-        >
-          {status.label} — {status.reason}
-        </span>
+          <span
+            className={cn(
+              "inline-flex rounded-full border px-3 py-1 text-sm font-medium",
+              STATUS_BADGE[status.key],
+            )}
+          >
+            {status.label} — {status.reason}
+          </span>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -3,6 +3,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import {
   recordVerdict,
+  raiseRfi,
   setOrgAccess,
   postExportAudit,
   enqueueApproval,
@@ -72,6 +73,28 @@ export async function recordVerdictAction(
     adminName: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Admin",
   });
   if (!res.ok) return { error: res.error };
+  return { ok: true };
+}
+
+/**
+ * Relay an Avenia EDD info request to the customer (org -> rfi_required + a customer-visible
+ * message shown on their onboarding screen). Modelo A: a relay, audit-logged by the backend.
+ */
+export async function raiseRfiAction(
+  orgId: string,
+  message: string,
+): Promise<{ ok: true } | { error: string }> {
+  const id = await staffIdentity();
+  if ("error" in id) return id;
+  if (!message.trim()) return { error: "Escreva a mensagem para o cliente." };
+  const res = await raiseRfi(orgId, { message: message.trim(), ...id });
+  if (!res.ok) {
+    return {
+      error: res.error.startsWith("illegal")
+        ? "A empresa não está em um estado que permite solicitar informações."
+        : "Não foi possível registrar a solicitação.",
+    };
+  }
   return { ok: true };
 }
 
