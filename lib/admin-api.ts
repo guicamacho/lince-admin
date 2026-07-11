@@ -465,3 +465,22 @@ export async function replayWebhook(
   }
   return { ok: true };
 }
+
+// --- Uploaded document references for an org (ops visibility; NO bytes — files live on Didit). ---
+export interface OrgDocumentRow {
+  id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  status: "received" | "forwarded" | "failed";
+  didit_ref: string | null;
+  created_at: string;
+  case_id: string | null;
+}
+
+export const listOrgDocuments = cache(async (orgId: string): Promise<OrgDocumentRow[]> => {
+  const res = await adminFetch(`/admin/orgs/${orgId}/documents`);
+  if (!res.ok) return [];
+  const body = (await res.json().catch(() => ({}))) as { documents?: OrgDocumentRow[] };
+  return body.documents ?? [];
+});

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getOrgDetail } from "@/lib/admin-api";
+import { getOrgDetail, listOrgDocuments } from "@/lib/admin-api";
 import { orgStatus, STATUS_BADGE } from "@/lib/org-status";
 import { CnpjMask } from "@/components/cnpj-mask";
 import { RfiDialog } from "@/components/rfi-dialog";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 // Org 360 read (A2). References + status only (Modelo A); the read is not audited.
 export default async function OrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const detail = await getOrgDetail(id);
+  const [detail, documents] = await Promise.all([getOrgDetail(id), listOrgDocuments(id)]);
   if (!detail) notFound();
 
   const { org, admission, avenia, didit, people, audit } = detail;
@@ -134,6 +134,34 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ id: 
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      <section className="space-y-3 rounded-xl border border-ink-500 bg-ink-700 p-5">
+        <h2 className="font-display text-lg">Documentos enviados</h2>
+        <p className="text-xs text-warm-500">
+          Referências apenas — os arquivos ficam na Didit (a Lince não os armazena). Encaminhe à
+          Avenia manualmente.
+        </p>
+        {documents.length === 0 ? (
+          <p className="text-sm text-warm-400">Nenhum documento enviado.</p>
+        ) : (
+          <ul className="divide-y divide-ink-500">
+            {documents.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 text-sm">
+                <span className="min-w-0 flex-1 truncate text-warm-200">{d.filename}</span>
+                <span className="text-xs text-warm-500">{d.content_type}</span>
+                <span className="text-xs text-warm-500">{Math.round(d.size_bytes / 1024)} KB</span>
+                <span className={cn("text-xs", d.status === "failed" ? "text-clay-500" : "text-emerald-500")}>
+                  {d.status === "failed" ? "Falha" : "Recebido"}
+                </span>
+                <span className="font-mono text-xs text-warm-600" title={d.didit_ref ?? undefined}>
+                  {d.didit_ref ? `${d.didit_ref.slice(0, 16)}…` : "—"}
+                </span>
+                <span className="text-xs text-warm-500">{formatDateTime(d.created_at)}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
