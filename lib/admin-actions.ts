@@ -13,6 +13,7 @@ import {
   updateCaseStatus,
   assignCase,
   replayWebhook,
+  setStaffRoles,
 } from "@/lib/admin-api";
 
 /**
@@ -307,6 +308,25 @@ export async function replayWebhookAction(eventId: string): Promise<{ ok: true }
           ? "Este evento não está em falha — nada para reprocessar."
           : "Não foi possível reprocessar. Tente novamente.",
     };
+  }
+  return { ok: true };
+}
+
+/** Superadmin: set a staff member's roles. */
+export async function setStaffRolesAction(
+  adminId: string,
+  roles: string[],
+): Promise<{ ok: true } | { error: string }> {
+  const user = await currentUser();
+  if (!user) return { error: "Sessão expirada. Entre novamente." };
+  const res = await setStaffRoles(adminId, roles);
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      insufficient_role: "Apenas superadmin pode alterar papéis.",
+      cannot_remove_last_superadmin: "Não é possível remover o último superadmin.",
+      admin_not_found: "Administrador não encontrado.",
+    };
+    return { error: map[res.error] ?? "Não foi possível salvar. Tente novamente." };
   }
   return { ok: true };
 }

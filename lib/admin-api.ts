@@ -6,16 +6,23 @@
  */
 import "server-only";
 import { cache } from "react";
+import { auth } from "@clerk/nextjs/server";
 
 const BASE = process.env.LINCE_API_URL ?? "http://localhost:3000";
 const TOKEN = process.env.ADMIN_SERVICE_TOKEN ?? "";
 
 async function adminFetch(path: string, init?: RequestInit): Promise<Response> {
+  // Forward the staff member's admin-Clerk session token so the backend can VERIFY the actor
+  // (PRD-08 §5.1) instead of trusting a body field. Harmless when the backend runs legacy mode.
+  const token = await auth()
+    .then((a) => a.getToken())
+    .catch(() => null);
   return fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
       "x-admin-service-token": TOKEN,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
@@ -484,3 +491,35 @@ export const listOrgDocuments = cache(async (orgId: string): Promise<OrgDocument
   const body = (await res.json().catch(() => ({}))) as { documents?: OrgDocumentRow[] };
   return body.documents ?? [];
 });
+
+// --- Staff (admin_users) roster + role management (superadmin-gated on the backend). ---
+export interface AdminStaff {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export const listAdminStaff = cache(async (): Promise<{ ok: boolean; staff: AdminStaff[] }> => {
+  const res = await adminFetch("/admin/admins");
+  if (!res.ok) return { ok: false, staff: [] }; // 403 for non-superadmins
+  const body = (await res.json().catch(() => ({}))) as { admins?: AdminStaff[] };
+  return { ok: true, staff: body.admins ?? [] };
+});
+
+export async function setStaffRoles(
+  adminId: string,
+  roles: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/admins/${adminId}/roles`, {
+    method: "POST",
+    body: JSON.stringify({ roles }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
