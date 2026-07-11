@@ -10,6 +10,7 @@ import {
   ArrowLeftRight,
   Landmark,
   ShieldCheck,
+  Radio,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/transactions", label: "Transações", icon: ArrowLeftRight },
   { href: "/treasury", label: "Tesouraria", icon: Landmark },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, badge: "cases" as const },
+  { href: "/events", label: "Eventos", icon: Radio },
   { href: "/settings", label: "Configurações", icon: Settings },
 ].filter((item) => MAKER_CHECKER_ENABLED || item.href !== "/approvals");
 

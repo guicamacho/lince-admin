@@ -406,3 +406,62 @@ export async function assignCase(
   }
   return { ok: true };
 }
+
+// --- Transações (PRD-04 §4.4): all-orgs Avenia-ticket view. Amounts in MINOR units. ---
+export interface AdminTransaction {
+  id: string;
+  orgId: string;
+  razaoSocial: string;
+  type: "deposit" | "convert_and_send" | "payout";
+  state: string;
+  ticketStatus: string;
+  sourceCurrency: string | null;
+  sourceAmount: number | null;
+  destCurrency: string | null;
+  destAmount: number | null;
+  fees: Array<{ label: string; amount: number; currency: string; rebatable: boolean }>;
+  vendorRef: string | null;
+  createdAt: string;
+}
+
+export const listTransactions = cache(async (): Promise<AdminTransaction[]> => {
+  const res = await adminFetch("/admin/transactions");
+  if (!res.ok) throw new Error(`backend /admin/transactions failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { transactions?: AdminTransaction[] };
+  return body.transactions ?? [];
+});
+
+// --- Eventos (PRD-04 §4.8): webhook processing health + guarded replay. ---
+export interface WebhookEventRow {
+  id: string;
+  provider_code: string;
+  event_type: string;
+  external_event_id: string;
+  status: "received" | "processed" | "failed" | "dead" | "ignored";
+  attempts: number;
+  last_error: string | null;
+  received_at: string;
+  processed_at: string | null;
+}
+
+export const listWebhookEvents = cache(async (): Promise<WebhookEventRow[]> => {
+  const res = await adminFetch("/admin/webhooks");
+  if (!res.ok) throw new Error(`backend /admin/webhooks failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { events?: WebhookEventRow[] };
+  return body.events ?? [];
+});
+
+export async function replayWebhook(
+  id: string,
+  identity: { adminClerkUserId: string; adminEmail: string; adminName: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/webhooks/${id}/replay`, {
+    method: "POST",
+    body: JSON.stringify(identity),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}

@@ -12,6 +12,7 @@ import {
   postCaseMessage,
   updateCaseStatus,
   assignCase,
+  replayWebhook,
 } from "@/lib/admin-api";
 
 /**
@@ -291,5 +292,21 @@ export async function assignCaseAction(
   if (!user) return { error: "Sessão expirada. Entre novamente." };
   const res = await assignCase(caseId, assignedAdminId);
   if (!res.ok) return { error: mapCaseError(res.error) };
+  return { ok: true };
+}
+
+/** Replay a failed/dead webhook event back through the drain (audited backend-side). */
+export async function replayWebhookAction(eventId: string): Promise<{ ok: true } | { error: string }> {
+  const identity = await staffIdentity();
+  if ("error" in identity) return identity;
+  const res = await replayWebhook(eventId, identity);
+  if (!res.ok) {
+    return {
+      error:
+        res.error === "not_replayable"
+          ? "Este evento não está em falha — nada para reprocessar."
+          : "Não foi possível reprocessar. Tente novamente.",
+    };
+  }
   return { ok: true };
 }
