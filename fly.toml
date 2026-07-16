@@ -1,0 +1,23 @@
+# lince-admin-dev — staff back-office, PRIVATE-ONLY like lince-api-dev:
+# no [http_service] / [[services]], so Fly allocates no public IPs and *.fly.dev is dark.
+# Reached solely via the Cloudflare Tunnel (lince-cf-tunnel) over Fly 6PN at
+# http://lince-admin-dev.internal:3000, published as admin-dev.lincefinance.xyz behind
+# Cloudflare Access. With no service there is no auto-stop: the single machine runs
+# continuously (Fly restarts it on crash); cloudflared reconnects automatically.
+app = "lince-admin-dev"
+primary_region = "gru"
+
+[build]
+  [build.args]
+    # Publishable key is public (inlined into the client bundle anyway). up-eft-7 instance.
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_dXAtZWZ0LTcuY2xlcmsuYWNjb3VudHMuZGV2JA"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  # Server-to-server over the Fly private network: no Cloudflare hop, and immune to the
+  # Access lock going onto api-dev.lincefinance.xyz (Access would 403 a public-hostname call).
+  LINCE_API_URL = "http://lince-api-dev.internal:3000"
+
+# Secrets (fly secrets set -a lince-admin-dev): CLERK_SECRET_KEY (up-eft-7),
+# ADMIN_SERVICE_TOKEN (must match the backend's).

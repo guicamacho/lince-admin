@@ -1,8 +1,8 @@
-# Admin portal CI. Typecheck + build with placeholder Clerk keys on every push/PR.
-# No deploy job yet: the admin portal has no hosting target (no fly.toml / Fly app) — it runs
-# locally today. Add a deploy job mirroring lince-customer when the admin app is provisioned
-# (Environments & Promotion Strategy, Confluence 262373377; remember ADMIN_CLERK_SECRET_KEY on
-# the backend so the deployed admin runs verified staff identity, not legacy body-trust).
+# Admin portal CI/CD. Typecheck + build with placeholder Clerk keys on every push/PR; a green
+# dev push deploys to Fly lince-admin-dev (private-only, published via the Cloudflare tunnel as
+# admin-dev.lincefinance.xyz behind Access). Requires the FLY_API_TOKEN repo secret
+# (fly tokens create deploy -a lince-admin-dev) and ADMIN_CLERK_SECRET_KEY on the backend so
+# the deployed admin runs verified staff identity, not legacy body-trust.
 name: CI
 
 on:
@@ -27,3 +27,15 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx next build
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency: deploy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
