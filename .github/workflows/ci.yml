@@ -1,0 +1,29 @@
+# Admin portal CI. Typecheck + build with placeholder Clerk keys on every push/PR.
+# No deploy job yet: the admin portal has no hosting target (no fly.toml / Fly app) — it runs
+# locally today. Add a deploy job mirroring lince-customer when the admin app is provisioned
+# (Environments & Promotion Strategy, Confluence 262373377; remember ADMIN_CLERK_SECRET_KEY on
+# the backend so the deployed admin runs verified staff identity, not legacy body-trust).
+name: CI
+
+on:
+  push:
+    branches: [dev, staging, main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_SECRET_KEY: sk_test_dummy
+      LINCE_API_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx next build
