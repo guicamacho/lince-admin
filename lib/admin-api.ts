@@ -451,12 +451,29 @@ export interface WebhookEventRow {
   processed_at: string | null;
 }
 
-export const listWebhookEvents = cache(async (): Promise<WebhookEventRow[]> => {
+/** Outbound notification that failed or dead-lettered (undeliverable customer mail). */
+export interface FailedNotificationRow {
+  id: string;
+  event_type: string;
+  template_id: string;
+  recipient_ref: string;
+  status: "failed" | "dead";
+  attempts: number;
+  created_at: string;
+  sent_at: string | null;
+}
+
+// One backend call feeds both readers below (cache() dedupes within the request).
+const webhookHealth = cache(async (): Promise<{ events: WebhookEventRow[]; notifications: FailedNotificationRow[] }> => {
   const res = await adminFetch("/admin/webhooks");
   if (!res.ok) throw new Error(`backend /admin/webhooks failed: HTTP ${res.status}`);
-  const body = (await res.json()) as { events?: WebhookEventRow[] };
-  return body.events ?? [];
+  const body = (await res.json()) as { events?: WebhookEventRow[]; notifications?: FailedNotificationRow[] };
+  return { events: body.events ?? [], notifications: body.notifications ?? [] };
 });
+
+export const listWebhookEvents = async (): Promise<WebhookEventRow[]> => (await webhookHealth()).events;
+export const listFailedNotifications = async (): Promise<FailedNotificationRow[]> =>
+  (await webhookHealth()).notifications;
 
 export async function replayWebhook(
   id: string,
