@@ -15,6 +15,10 @@ primary_region = "gru"
 [env]
   NODE_ENV = "production"
   PORT = "3000"
+  # Bind IPv6 dual-stack: the Dockerfile's HOSTNAME=0.0.0.0 is IPv4-only, but a private-only
+  # app is reached over Fly 6PN (IPv6) — with 0.0.0.0 every .internal connection is refused.
+  # Machine env overrides the image env.
+  HOSTNAME = "::"
   # Server-to-server over the Fly private network: no Cloudflare hop, and immune to the
   # Access lock going onto api-dev.lincefinance.xyz (Access would 403 a public-hostname call).
   LINCE_API_URL = "http://lince-api-dev.internal:3000"
