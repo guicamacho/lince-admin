@@ -47,10 +47,10 @@ export function formatDateTime(s: string | null | undefined): string {
   return s ? new Date(s).toLocaleString("pt-BR") : "—";
 }
 
-/** Minor units -> pt-BR money. BRL/BRLA/USD/EUR are 2dp; USDC/USDT 6dp. null → em-dash. */
+/** Minor units -> pt-BR money. BRL/BRLA/USD/EUR are 2dp; USDC/USDT/EURC 6dp. null → em-dash. */
 export function formatMinor(amount: number | null | undefined, currency: string | null): string {
   if (amount == null || !currency) return "—";
-  const dp = currency === "USDC" || currency === "USDT" ? 6 : 2;
+  const dp = currency === "USDC" || currency === "USDT" || currency === "EURC" ? 6 : 2;
   const value = amount / 10 ** dp;
   const symbol = currency === "BRL" || currency === "BRLA" ? "R$ " : "";
   const label = symbol ? "" : ` ${currency}`;

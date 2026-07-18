@@ -471,6 +471,41 @@ const webhookHealth = cache(async (): Promise<{ events: WebhookEventRow[]; notif
   return { events: body.events ?? [], notifications: body.notifications ?? [] };
 });
 
+// --- Tesouraria (PRD-04 §13.3 / AC12): recon runs + open breaks. ---
+export interface ReconRun {
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: "queued" | "running" | "completed" | "failed";
+  summary: {
+    orgsChecked?: number;
+    skippedInFlight?: number;
+    vendorErrors?: number;
+    missingPostings?: number;
+    balanceDrifts?: number;
+    error?: string;
+  };
+}
+export interface ReconBreak {
+  id: string;
+  run_id: string;
+  subaccount_id: string | null;
+  asset: string | null;
+  break_type: "balance_drift" | "missing_posting" | "orphan_posting" | "delivery_gap";
+  expected_minor: string | null;
+  actual_minor: string | null;
+  status: "open" | "investigating" | "resolved";
+  detected_at: string;
+  case_id: string | null;
+  razao_social: string | null;
+}
+export const listRecon = cache(async (): Promise<{ runs: ReconRun[]; breaks: ReconBreak[] }> => {
+  const res = await adminFetch("/admin/recon");
+  if (!res.ok) throw new Error(`backend /admin/recon failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { runs?: ReconRun[]; breaks?: ReconBreak[] };
+  return { runs: body.runs ?? [], breaks: body.breaks ?? [] };
+});
+
 export const listWebhookEvents = async (): Promise<WebhookEventRow[]> => (await webhookHealth()).events;
 export const listFailedNotifications = async (): Promise<FailedNotificationRow[]> =>
   (await webhookHealth()).notifications;
