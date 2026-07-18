@@ -14,6 +14,7 @@ import {
   assignCase,
   replayWebhook,
   setStaffRoles,
+  setFxSpread,
 } from "@/lib/admin-api";
 
 /**
@@ -297,6 +298,28 @@ export async function assignCaseAction(
 }
 
 /** Replay a failed/dead webhook event back through the drain (audited backend-side). */
+const FX_ERRORS: Record<string, string> = {
+  invalid_spread_bps: "Spread inválido: use um inteiro entre 0 e 1000 bps.",
+  invalid_pair: "Par inválido.",
+  invalid_direction: "Direção inválida.",
+  cannot_clear_default: "O padrão não pode ser removido — defina 0 bps.",
+  admin_role_required: "Apenas superadmins alteram preços.",
+};
+
+/** PRD-09: set/clear one cell of the spread schedule. Backend is superadmin-gated + audited. */
+export async function setFxSpreadAction(input: {
+  orgId: string | null;
+  pair: string;
+  direction: string;
+  spreadBps: number | null;
+}): Promise<{ ok: true } | { error: string }> {
+  const identity = await staffIdentity();
+  if ("error" in identity) return identity;
+  const res = await setFxSpread(input, identity);
+  if (!res.ok) return { error: FX_ERRORS[res.error] ?? "Não foi possível salvar. Tente novamente." };
+  return { ok: true };
+}
+
 export async function replayWebhookAction(eventId: string): Promise<{ ok: true } | { error: string }> {
   const identity = await staffIdentity();
   if ("error" in identity) return identity;

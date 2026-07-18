@@ -471,6 +471,37 @@ const webhookHealth = cache(async (): Promise<{ events: WebhookEventRow[]; notif
   return { events: body.events ?? [], notifications: body.notifications ?? [] };
 });
 
+// --- Preços (PRD-09): the fx spread schedule (commission schedule, bps). ---
+export interface FxSpreadRow {
+  orgId: string | null; // null = global default
+  razaoSocial: string | null;
+  pair: "USD" | "EUR";
+  direction: "buy" | "sell";
+  spreadBps: number;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+export const listFxSpreads = cache(async (): Promise<FxSpreadRow[]> => {
+  const res = await adminFetch("/admin/fx-spreads");
+  if (!res.ok) throw new Error(`backend /admin/fx-spreads failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { spreads?: FxSpreadRow[] };
+  return body.spreads ?? [];
+});
+export async function setFxSpread(
+  input: { orgId: string | null; pair: string; direction: string; spreadBps: number | null },
+  identity: { adminClerkUserId: string; adminEmail: string; adminName: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch("/admin/fx-spreads", {
+    method: "PUT",
+    body: JSON.stringify({ ...input, ...identity }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+
 // --- Tesouraria (PRD-04 §13.3 / AC12): recon runs + open breaks. ---
 export interface ReconRun {
   id: string;
