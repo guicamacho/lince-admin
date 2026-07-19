@@ -35,7 +35,7 @@ export default async function OrgDetailPage({ params }: { params: Promise<{ id: 
         <div className="min-w-0">
           <h1 className="font-display text-2xl">{org.razao_social}</h1>
           <div className="mt-1">
-            <CnpjMask cnpj={org.cnpj} />
+            <CnpjMask cnpj={org.cnpj} orgId={org.id} />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">

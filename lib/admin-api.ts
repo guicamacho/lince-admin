@@ -296,6 +296,8 @@ export interface AdminCase {
   closed_at: string | null;
   org_name: string | null;
   last_message_at: string | null;
+  /** min(admin message time) — the dispute first-response SLA clock stops here. */
+  first_admin_response_at: string | null;
 }
 
 export const listCases = cache(async (): Promise<AdminCase[]> => {
@@ -470,6 +472,47 @@ const webhookHealth = cache(async (): Promise<{ events: WebhookEventRow[]; notif
   const body = (await res.json()) as { events?: WebhookEventRow[]; notifications?: FailedNotificationRow[] };
   return { events: body.events ?? [], notifications: body.notifications ?? [] };
 });
+
+// --- §13.2 beneficiary re-verification queue + AC14 audited reveal ---
+export interface ReverificationRow {
+  id: string;
+  label: string;
+  rail: string;
+  asset: string | null;
+  dest_hint: string | null;
+  destination_changed_at: string;
+  org_id: string;
+  razao_social: string;
+}
+export const listReverification = cache(async (): Promise<ReverificationRow[]> => {
+  const res = await adminFetch("/admin/beneficiaries/reverification");
+  if (!res.ok) throw new Error(`backend reverification failed: HTTP ${res.status}`);
+  const body = (await res.json()) as { beneficiaries?: ReverificationRow[] };
+  return body.beneficiaries ?? [];
+});
+export async function verifyPayee(
+  id: string,
+  identity: { adminClerkUserId: string; adminEmail: string; adminName: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/beneficiaries/${id}/verify`, { method: "POST", body: JSON.stringify(identity) });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  return { ok: true };
+}
+export async function revealCnpj(
+  orgId: string,
+  identity: { adminClerkUserId: string; adminEmail: string; adminName: string },
+): Promise<{ ok: true; cnpj: string } | { ok: false; error: string }> {
+  const res = await adminFetch(`/admin/orgs/${orgId}/reveal-cnpj`, { method: "POST", body: JSON.stringify(identity) });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  const body = (await res.json()) as { cnpj: string };
+  return { ok: true, cnpj: body.cnpj };
+}
 
 // --- Preços (PRD-09): the fx spread schedule (commission schedule, bps). ---
 export interface FxSpreadRow {

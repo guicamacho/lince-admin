@@ -15,7 +15,7 @@ import {
   type CaseStatusKey,
   type CasePriorityKey,
 } from "@/lib/case-status";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, elapsedLabel } from "@/lib/format";
 import type { AdminCase } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
@@ -274,6 +274,11 @@ export function CasesTable({ cases }: { cases: AdminCase[] }) {
                       {c.summary && (
                         <span className="mt-0.5 block max-w-[22rem] truncate text-xs text-warm-500">
                           {c.summary}
+                        </span>
+                      )}
+                      {c.type === "customer_dispute" && c.status !== "closed" && !c.first_admin_response_at && (
+                        <span className="mt-1 inline-flex rounded-full border border-gold-500/40 bg-gold-500/10 px-2 py-0.5 text-xs text-gold-500">
+                          1ª resposta pendente
                         </span>
                       )}
                     </td>

@@ -29,7 +29,7 @@ export const CASE_PRIORITIES: CasePriorityKey[] = ["low", "normal", "high", "urg
 
 // UX gate only — the real customer-visibility wall is the backend (messages.service
 // messageCanBeCustomerVisible). This just decides whether to SHOW the compose checkbox.
-export const CUSTOMER_FACING_CASE_TYPES = new Set(["rfi_relay", "kyb_completeness"]);
+export const CUSTOMER_FACING_CASE_TYPES = new Set(["rfi_relay", "kyb_completeness", "customer_dispute"]);
 
 const CASE_TYPE_LABEL: Record<string, string> = {
   kyb_completeness: "Complementação de cadastro (KYB)",

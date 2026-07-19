@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { elapsedLabel, maskCnpj, formatDate } from "@/lib/format";
+import { elapsedLabel, formatDate } from "@/lib/format";
 import type { AgingRow } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export function AgingQueue({
                 >
                   {r.razao_social}
                 </Link>
-                <span className="block font-mono text-xs text-warm-500">{maskCnpj(r.cnpj)}</span>
+                <span className="block font-mono text-xs text-warm-500">{(r.cnpj)}</span>
               </td>
               <td className="px-4 py-3 text-warm-400">{formatDate(r.kyb_forwarded_at)}</td>
               <td className="px-4 py-3 tabular-nums text-warm-200">

@@ -15,6 +15,8 @@ import {
   replayWebhook,
   setStaffRoles,
   setFxSpread,
+  verifyPayee,
+  revealCnpj,
 } from "@/lib/admin-api";
 
 /**
@@ -318,6 +320,30 @@ export async function setFxSpreadAction(input: {
   const res = await setFxSpread(input, identity);
   if (!res.ok) return { error: FX_ERRORS[res.error] ?? "Não foi possível salvar. Tente novamente." };
   return { ok: true };
+}
+
+/** §13.2 operational approval: changed_pending -> verified (payable again). */
+export async function verifyPayeeAction(id: string): Promise<{ ok: true } | { error: string }> {
+  const identity = await staffIdentity();
+  if ("error" in identity) return identity;
+  const res = await verifyPayee(id, identity);
+  if (!res.ok) {
+    return {
+      error: res.error === "not_pending_reverification"
+        ? "Este beneficiário não está aguardando reverificação."
+        : "Não foi possível verificar. Tente novamente.",
+    };
+  }
+  return { ok: true };
+}
+
+/** AC14: audited full-CNPJ reveal (every call is a sensitive-read audit event). */
+export async function revealCnpjAction(orgId: string): Promise<{ ok: true; cnpj: string } | { error: string }> {
+  const identity = await staffIdentity();
+  if ("error" in identity) return identity;
+  const res = await revealCnpj(orgId, identity);
+  if (!res.ok) return { error: "Não foi possível revelar. Tente novamente." };
+  return { ok: true, cnpj: res.cnpj };
 }
 
 export async function replayWebhookAction(eventId: string): Promise<{ ok: true } | { error: string }> {

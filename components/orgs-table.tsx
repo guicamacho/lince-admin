@@ -7,7 +7,7 @@ import { AccessDialog } from "@/components/access-dialog";
 import { ElapsedSince } from "@/components/elapsed-since";
 import { exportAuditAction } from "@/lib/admin-actions";
 import { orgStatus, STATUS_BADGE, type OrgStatusKey } from "@/lib/org-status";
-import { formatDate, maskCnpj } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import type { AdminOrg } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +78,8 @@ export function OrgsTable({ orgs }: { orgs: AdminOrg[] }) {
       rows = rows.filter(
         ({ o }) =>
           o.razao_social.toLowerCase().includes(q) ||
-          (qDigits.length > 0 && o.cnpj.replace(/\D/g, "").includes(qDigits)),
+          // AC14: cnpj arrives MASKED (last 4 only) — match the tail, incl. a full-CNPJ paste.
+          (qDigits.length >= 4 && o.cnpj.replace(/\D/g, "").endsWith(qDigits.slice(-4))),
       );
     }
     if (from) rows = rows.filter(({ o }) => o.created_at.slice(0, 10) >= from);
@@ -305,7 +306,7 @@ export function OrgsTable({ orgs }: { orgs: AdminOrg[] }) {
               <tbody className="divide-y divide-ink-500">
                 {pageRows.map(({ o, s }) => (
                   <tr key={o.id} className="text-warm-200">
-                    <td className="px-4 py-3 font-mono text-xs">{maskCnpj(o.cnpj)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{o.cnpj}</td>
                     <td className="px-4 py-3">
                       <Link
                         href={`/orgs/${o.id}`}

@@ -1,12 +1,13 @@
-import { listCases, listOrgs } from "@/lib/admin-api";
+import { listCases, listOrgs, listReverification } from "@/lib/admin-api";
 import { CasesTable } from "@/components/cases-table";
+import { ReverificationQueue } from "@/components/reverification-queue";
 import { CreateCaseDialog } from "@/components/create-case-dialog";
 
 // Compliance cases (Wave 2 admin §5). Staff-opened cases over the operational taxonomy; the
 // customer-visibility wall lives in the backend. listCases() is cache()'d and shared with the
 // layout's open-case badge.
 export default async function CompliancePage() {
-  const [cases, orgs] = await Promise.all([listCases(), listOrgs()]);
+  const [cases, orgs, reverification] = await Promise.all([listCases(), listOrgs(), listReverification()]);
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -18,6 +19,7 @@ export default async function CompliancePage() {
         </div>
         <CreateCaseDialog orgs={orgs} />
       </div>
+      <ReverificationQueue rows={reverification} />
       <CasesTable cases={cases} />
     </div>
   );

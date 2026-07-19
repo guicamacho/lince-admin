@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { TopBar } from "@/components/top-bar";
+import { SessionTimeout } from "@/components/session-timeout";
 import { Sidebar } from "@/components/sidebar";
 import { PendingBanner } from "@/components/pending-banner";
 import { listOrgs, listApprovals, listCases } from "@/lib/admin-api";
@@ -25,6 +26,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen flex-col">
+      <SessionTimeout />
       <TopBar />
       <div className="flex flex-1">
         <Sidebar approvalsCount={approvals.length} openCasesCount={openCasesCount} />
