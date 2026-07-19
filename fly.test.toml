@@ -1,0 +1,22 @@
+# lince-admin-test — TEST tier staff portal. PUBLIC (test tier is "loose; internal" per the
+# Environments strategy): Clerk admin instance has sign-up disabled, and the backend enforces
+# the service token + verified admin actor either way. Extend CF Access here later if wanted.
+app = "lince-admin-test"
+primary_region = "gru"
+
+[build]
+  [build.args]
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_dXAtZWZ0LTcuY2xlcmsuYWNjb3VudHMuZGV2JA"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  HOSTNAME = "::"
+  LINCE_API_URL = "http://lince-api-test.internal:3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
