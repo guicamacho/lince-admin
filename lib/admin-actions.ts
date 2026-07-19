@@ -77,7 +77,16 @@ export async function recordVerdictAction(
     adminEmail: email,
     adminName: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Admin",
   });
-  if (!res.ok) return { error: res.error };
+  if (!res.ok) {
+    return {
+      error:
+        res.error === "use_approvals"
+          ? "Com o maker-checker ativo, bloqueios passam pela fila de Aprovações (segunda aprovação obrigatória)."
+          : res.error === "access_status_conflict"
+            ? "O status desta empresa mudou desde que a tela foi carregada. Recarregue e tente novamente."
+            : res.error,
+    };
+  }
   return { ok: true };
 }
 
