@@ -44,7 +44,7 @@ jobs:
   # Needs the repo secret FLY_API_TOKEN_TEST (fly tokens create deploy -a lince-admin-test).
   deploy-test:
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
     concurrency: deploy-test
     steps:
